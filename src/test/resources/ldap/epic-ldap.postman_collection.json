@@ -1,0 +1,218 @@
+{
+	"info": {
+		"_postman_id": "b8581e2a-1b60-4f75-94d8-8d2ef6b67718",
+		"name": "ses-epic",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Active LDAP account",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "55d4b92f-da42-45fd-892b-f94300a8374b",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Json Response\", function () {",
+							"    pm.response.to.have.jsonBody()",
+							"});",
+							"",
+							"pm.test(\"Access Token Found\", function () {",
+							"    pm.expect(pm.response.text()).to.include('accessToken');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t \"username\" : \"change user\",\n\t \"password\" : \"change password\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/EPIC-WS-0.1-SNAPSHOT/resources/authentication",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"EPIC-WS-0.1-SNAPSHOT",
+						"resources",
+						"authentication"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Deactivated LDAP with Application Account User1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "60409b7a-abae-4fe7-9f70-1abd4aeb0c76",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Json Response constains user name\", function () {",
+							"    const json = pm.response.json();",
+							"    console.log(json.userName);",
+							"    pm.expect(json.userName).to.eql('user1');",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t \"username\" : \"user1\",\n\t \"password\" : \"\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/EPIC-WS-0.1-SNAPSHOT/resources/authentication",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"EPIC-WS-0.1-SNAPSHOT",
+						"resources",
+						"authentication"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Deactivated LDAP and No Application Account",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "317094a5-3e55-4908-b3ef-277f9016d8b9",
+						"exec": [
+							"pm.test(\"Status code is 403\", function () {",
+							"    pm.response.to.have.status(403);",
+							"});",
+							"",
+							"",
+							"pm.test(\"Access Forbidden\", function () {",
+							"    pm.expect(pm.response.text()).to.include('Forbidden');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t \"username\" : \"user2\",\n\t \"password\" : \"\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/EPIC-WS-0.1-SNAPSHOT/resources/authentication",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"EPIC-WS-0.1-SNAPSHOT",
+						"resources",
+						"authentication"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Active LDAP bad password",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "8edb04f2-631f-4166-bdfa-0ac40af95f0e",
+						"exec": [
+							"pm.test(\"Status code is 403\", function () {",
+							"    pm.response.to.have.status(403);",
+							"});",
+							"",
+							"",
+							"pm.test(\"Access Forbidden\", function () {",
+							"    pm.expect(pm.response.text()).to.include('Forbidden');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t \"username\" : \"change user\",\n\t \"password\" : \"bad password\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/EPIC-WS-0.1-SNAPSHOT/resources/authentication",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"EPIC-WS-0.1-SNAPSHOT",
+						"resources",
+						"authentication"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

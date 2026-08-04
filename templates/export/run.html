@@ -1,0 +1,559 @@
+<!-- Create User Macro -->
+<#macro userMacro user>
+${user.displayName} (${user.username})
+</#macro>
+
+<!-- Create Equipment List Macro -->
+<#macro equipmentListMacro equipmentList=[]>
+<table>
+    <tr>
+        <th>Name</th>
+        <th>Serial #</th>
+        <th>Property #</th>
+        <th>Calibration Date</th>
+        <th>Calibration Due Date</th>
+    </tr>
+    <#list equipmentList as equipmentItem>
+    <tr>
+        <td>${equipmentItem.name}</td>
+        <td>${equipmentItem.serialNumber}</td>
+        <td>${equipmentItem.propertyNumber}</td>
+        <#if equipmentItem.calibrationDate??>
+            <td>${equipmentItem.calibrationDate}</td>
+        <#else>
+            <td>---</td>
+        </#if>
+        <#if equipmentItem.calibrationDueDate??>
+            <td>${equipmentItem.calibrationDueDate}</td>
+        <#else>
+            <td>---</td>
+        </#if>
+    </tr>
+    </#list>
+</table>
+</#macro>
+
+<!-- Create Redline Macro -->
+<#macro redLineMacro redLine>
+<table style="color: red;">
+    <tr>
+        <th>Timestamp</th>
+        <th>User</th>
+        <th>Text</th>
+        <th>Signatures</th>
+    </tr>
+    <tr>
+        <td>${redLine.commentTimestamp}</td>
+        <td><@userMacro redLine.users /></td>
+        <td>${redLine.commentText}</td>
+        <td><@signatureListMacro redLine.blackRedLineSignatures /></td>
+    </tr>
+</table>
+</#macro>
+
+<!-- Create RunStepComment Macro -->
+<#macro runStepCommentMacro comment>
+<table>
+    <tr>
+        <th>Is Nonconformance?</th>
+        <th>Timestamp</th>
+        <th>User</th>
+        <th>Text</th>
+    </tr>
+    <tr>
+        <#if comment.isNonconformance??>
+            <td>${comment.isNonconformance}</td>
+        <#else>
+            <td>false</td>
+        </#if>
+        <td>${comment.commentTimestamp}</td>
+        <td><@userMacro comment.users /></td>
+        <td>${comment.commentText}</td>
+    </tr>
+</table>
+</#macro>
+
+<!-- Create BlackLine Comment Macro -->
+<#macro blackLineCommentMacro comment>
+<table>
+    <tr>
+        <th>Timestamp</th>
+        <th>User</th>
+        <th>Text</th>
+        <th>Signatures</th>
+    </tr>
+    <tr>
+        <td>${comment.commentTimestamp}</td>
+        <td><@userMacro comment.users /></td>
+        <td>${comment.commentText}</td>
+        <td><@signatureListMacro comment.blackRedLineSignatures /></td>
+    </tr>
+</table>
+</#macro>
+
+<#macro signatureListMacro signatures> 
+    <#list signatures as signature>
+        <strong>${(signature.programRole.name)!"Unknown Role"}:</strong> 
+        <@userMacro signature.user />, ${signature.timestamp}
+        <br>
+    </#list>
+</#macro>
+
+<html>
+
+<head>
+    <title>Export of Run ${procedureDetails.id}</title>
+</head>
+
+<body>
+    <h1>Export of Run ${procedureDetails.id}</h1>
+    <div>
+        <h2>Header</h2>
+
+        <div>
+            <h3>Run Details</h3>
+            <dl>
+                <dt>ID</dt>
+                <dd>${procedureDetails.id}</dd>
+
+                <dt>Name</dt>
+                <dd>${procedureDetails.procedureDef.name}</dd>
+
+                <dt>Description</dt>
+                <dd>${procedureDetails.procedureDef.description}</dd>
+
+                <dt>Testing Phase</dt>
+                <dd>${procedureDetails.run.testingPhase.name}</dd>
+
+                <dt>Run Number</dt>
+                <dd>${procedureDetails.run.runNumber!0}</dd>
+
+                <dt>Started By</dt>
+                <dd>
+                    <#if procedureDetails.run.user??>
+                    <@userMacro procedureDetails.run.user />
+                    <#else>
+                    ___
+                    </#if>
+                </dd>
+
+                <dt>Creation Date</dt>
+                <dd>${procedureDetails.run.createdDate}</dd>
+            </dl>
+        </div>
+
+        <div>
+            <h3>Hazard Information</h3>
+
+            <dl>
+                <dt>Procedure is ESD Class 0?</dt>
+                <dd>${procedureDetails.esd0}</dd>
+
+                <dt>Procedure is Hazardous?</dt>
+                <dd>${procedureDetails.hazardous}</dd>
+
+                <dt>Hazard Description</dt>
+                <dd>${procedureDetails.hazardDescription}</dd>
+            </dl>
+        </div>
+
+        <div>
+            <h3>Procedure Details</h3>
+
+            <dl>
+                <dt>ID</dt>
+                <!-- TODO: Verify this is the right property. -->
+                <dd>${procedureDetails.originalProcedureDetails.id}</dd>
+                
+                <dt>Procedure Name</dt>
+                <dd>${procedureDetails.originalProcedureDetails.procedureDef.name}</dd>
+                
+                <dt>Description</dt>
+                <dd>${procedureDetails.originalProcedureDetails.procedureDef.description}</dd>
+
+                <dt>Program</dt>
+                <dd>${procedureDetails.originalProcedureDetails.procedureDef.program.name}</dd>
+
+                <dt>Subsystem</dt>
+                <dd>${procedureDetails.originalProcedureDetails.procedureDef.subsystem.name}</dd>
+
+                <dt>Version</dt>
+                <dd>${procedureDetails.originalProcedureDetails.procedureDefVersion}</dd>
+
+                <dt>Creation Date</dt>
+                <dd>${procedureDetails.originalProcedureDetails.procedureHeader.creationDate}</dd>
+
+                <dt>Author</dt>
+                <dd><@userMacro procedureDetails.originalProcedureDetails.procedureHeader.user /></dd>
+
+                <dt>Status</dt>
+                <dd>${procedureDetails.originalProcedureDetails.status}</dd>
+            </dl>
+
+        </div>
+
+        <div>
+            <h3>Approvers</h3>
+
+            <ol>
+                <#list procedureDetails.originalProcedureDetails.procedureApprovals as approval>
+                    <#if approval.approvalType == 'APPROVER'>
+                        <#if (approval.approverDisabled?? &&  approval.approverDisabled == true)>
+                            <li><@userMacro approval.users />(Disabled)</li>
+                        <#else>
+                            <li><@userMacro approval.users /></li>
+                        </#if>
+                    <!-- TODO: See if we can get the type. -->
+                    </#if>
+                </#list>
+            </ol>
+            <h3>Reviewers</h3>
+            <ol>
+                <#list procedureDetails.originalProcedureDetails.procedureApprovals as approval>
+                <#if approval.approvalType == 'REVIEWER'>
+                    <li><@userMacro approval.users /></li>
+                </#if>
+                </#list>
+            </ol>
+        </div>
+
+        <div>
+            <h3>Supporting Documents</h3>
+
+            <ol>
+                <#list procedureDetails.procedureHeader.attachments as attachment>
+                    <#if attachment.editType == "REDLINE_DELETE">
+                        <li style="text-decoration: line-through; color: red">${attachment.originalFilename}</li>
+                    <#else>
+                        <li>${attachment.originalFilename}</li>
+                    </#if>
+                </#list>
+            </ol>
+        </div>
+    </div>
+
+
+    <div>
+        <h2>Instruction Information</h2>
+
+        <ol>
+            <#list procedureDetails.procedureInstructions as instruction>
+                <li><strong>${instruction.sectionName}:</strong> ${instruction.text!"___"}
+                <#if instruction.redLineComments??>
+                <div>
+                    <h5>Red Lines</h5>
+                    <#list instruction.redLineComments as redLine>
+                    <@redLineMacro redLine />
+                    </#list>
+                </div>
+                </#if>
+                </li>
+            </#list>
+        </ol>
+    </div>
+
+
+    <div>
+        <h2>Attachments</h2>
+        <ul>
+            <#list procedureDetails.run.attachments as attachment>
+            <li>${attachment.originalFilename}</li>
+            </#list>
+        </ul>
+    </div>
+
+
+
+    <div>
+        <h2>Equipment</h2>
+
+        <@equipmentListMacro procedureDetails.run.equipmentList />
+        
+    </div>
+
+
+
+    <div>
+        <h2>Steps</h2>
+
+
+        <!-- Create Second Signature macro -->
+        <#macro secondSignatureMacro secondSignature>
+            <#if secondSignature??>
+                <@userMacro secondSignature.user /> ${secondSignature.timestamp}
+            <#else>
+                ___
+            </#if>
+        </#macro>
+
+        <!-- Create Step Macro -->
+        <#macro stepMacro step>
+            <#if step.editType == "REDLINE_DELETE">
+                <h4 style="text-decoration: line-through; color: red">${step.displayOrder} ${step.stepName}</h4>
+            <#else>
+                <h4>${step.displayOrder} ${step.stepName}</h4>
+            </#if>
+            <!-- TODO: Description? -->
+            <dl>
+                <dt>Is ESD0?</dt>
+                <dd>${step.esd0}</dd>
+                
+                <dt>Is Hazardous?</dt>
+                <dd>${step.hazardous}</dd>
+
+                <dt>Manually Validated?</dt>
+                <dd>${step.isManualValidation}</dd>
+
+                <dt>Mandatory Inspection?</dt>
+                <dd>${step.mandatoryInspection}</dd>
+
+                <#if step.mandatoryInspection>
+                <dt>Mandatory Inspection Second Signature</dt>
+                <dd>
+                    <#if step.mandatoryInspectionSecondSignature??>
+                        <@userMacro step.mandatoryInspectionSecondSignature.user /> ${step.mandatoryInspectionSecondSignature.timestamp}
+                    <#else>
+                        ___
+                    </#if>
+                </dd>
+                </#if>
+
+                <dt>Requires Witness?</dt>
+                <dd>${step.requireWitness}</dd>
+
+                <#if step.requireWitness >
+                <dt>Witness Second Signature</dt>
+                <dd>
+                    <#if step.witnessSecondSignature??>
+                        <@userMacro step.witnessSecondSignature.user /> ${step.witnessSecondSignature.timestamp}
+                    <#else>
+                        ___
+                    </#if>
+                </dd>
+                </#if>
+
+                <dt>Instructions</dt>
+                <dd>${step.instructions}</dd>
+
+            </dl>
+
+            <h5>Comments</h5>
+            <#list step.runStepComments as comment>
+                <@runStepCommentMacro comment />
+            </#list>
+
+            <h5>Step History</h5>
+            <#list step.histories as historyElm>
+            <table>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>${historyElm.timestamp}</td>
+                    <td><@userMacro historyElm.user /></td>
+                    <td>${historyElm.description}</td>
+                </tr>
+            </table>
+            </#list>
+
+            <h5>Run Value Entry</h5>
+            <dl>
+                <dt>User</dt>
+                <dd>
+                    <#if step.runValueEntryUser?? >
+                    <@userMacro step.runValueEntryUser />
+                    <#else>
+                    ___
+                    </#if>
+                </dd>
+
+                <dt>Timestamp</dt>
+                <dd>${step.runValueSavedTimestamp!"___"}</dd>
+
+                <dt>Type</dt>
+                <dd>${step.type}</dd>
+            </dl>
+
+            <label>Value</label>
+            <p style="border: 1px solid black">
+            <#switch step.type>
+                
+                <#case "SINGLE_VALUE">
+                <#case "CHECKBOX">
+                    ${step.runValue!"___"}
+                <#break>
+                
+                <#case "TABLE">
+                    <table style="border: 1px solid black; border-collapse: collapse">
+                        <#list (step.stepTableRows)![] as row>
+                            <tr>
+                                <#list row.stepTableCells as cell>
+                                    <td style="border: 1px solid black; border-collapse: collapse">
+                                        <p>${cell.nonEditableValue!"___"}</p>
+                                    </td>
+                                </#list>
+                            </tr>
+                        </#list>
+                    </table>
+                <#break>
+            </#switch>
+            </p>
+
+            <h5>Equipment</h5>
+            <@equipmentListMacro step.equipment />
+
+            <h5>Run Step Attachments</h5>
+            <ul>
+                <#list step.runStepAttachments as attachment>
+                <li>${attachment.originalFilename}</li>
+                </#list>
+            </ul>
+
+            <h5>Step Def Attachments</h5>
+            <ul>
+                <#list step.stepDefAttachments as attachment>
+                    <#if attachment.editType == "REDLINE_DELETE">
+                        <li style="text-decoration: line-through; color: red">${attachment.originalFilename}</li>
+                    <#else>
+                        <li>${attachment.originalFilename}</li>
+                    </#if>
+                </#list>
+            </ul>
+
+            <#if step.blackLineComments??>
+            <div>
+                <h5>Black Lines</h5>
+                
+                <#list step.blackLineComments as blackLine>
+                <@blackLineCommentMacro blackLine />
+                </#list>
+            </div>
+            </#if>
+
+            <#if step.redLineComments??>
+            <div>
+                <h5>Red Lines</h5>
+                
+                <#list step.redLineComments as redLine>
+                <@redLineMacro redLine />
+                </#list>
+            </div>
+            </#if>
+
+            
+
+        </#macro>
+
+        <!-- Create Step Group Macro -->
+        <#macro stepGroupMacro stepGroup>
+        <div>
+            <#if stepGroup.editType == "REDLINE_DELETE">
+                <h3 style="text-decoration: line-through; color: red">${stepGroup.displayOrder} ${stepGroup.stepGroupName}</h3>
+            <#else>
+                <h3>${stepGroup.displayOrder} ${stepGroup.stepGroupName}</h3>
+            </#if>
+            <p>${stepGroup.description}</p>
+
+            <#if stepGroup.redLineComments??>
+            <div>
+                <h5>Red Lines</h5>
+                <#list stepGroup.redLineComments as redLine>
+                <@redLineMacro redLine />
+                </#list>
+            </div>
+            </#if>
+
+            <!-- StepDefs -->
+            <div>
+                <#list stepGroup.stepDefs as step>
+                <@stepMacro step />
+                </#list>
+            </div>
+
+            <!-- StepGroupDefs -->
+            <div>
+                <#list stepGroup.stepGroupDefsChildren as childGroup>
+                <@stepGroupMacro childGroup />
+                </#list>
+            </div>
+
+        </div>
+        </#macro>
+
+        <!-- Print Step Groups -->
+        <#list procedureDetails.stepGroupDefs as sg>
+        <@stepGroupMacro sg />
+        </#list>
+
+    </div>
+
+
+
+    <div>
+        <h2>Run Activity Summary</h2>
+        
+        <div>
+            <h3>Nonconformances</h3>
+            <#list nonconformanceComments as comment>
+                <@runStepCommentMacro comment />
+            </#list>
+        </div>
+        
+        <div>
+            <h3>All Red Lines</h3>
+                
+            <#list procedureDetails.redLineComments as redLine>
+            <@redLineMacro redLine />
+            </#list>
+            
+        </div>
+
+        <div>
+            <h3>Procedure Level Black Lines</h3>
+            <#list blackLineComments as comment>
+                <@blackLineCommentMacro comment />
+            </#list>
+        </div>
+
+    </div>
+
+
+
+
+    <div>
+        <h2>Close-Out</h2>
+
+        <p><label>Status:</label> ${procedureDetails.run.status}</p>
+
+        <h3>Approvers</h3>
+        <ol>
+            <#list procedureDetails.run.runApprovals as approval>
+            <#if approval.isApproved??>
+                <li><@userMacro approval.users /> - ${approval.isApproved}</li>
+            <#else>
+                <li><@userMacro approval.users /> - NO DECISION</li>
+            </#if>
+            </#list>
+        </ol>
+
+        <dl>
+            <dt>Submitter</dt>
+            <#if procedureDetails.run.closeoutSubmissionUser??>
+                <dd><@userMacro procedureDetails.run.closeoutSubmissionUser /></dd>
+            </#if>
+            <dt>Submitted On</dt>
+            <dd>${procedureDetails.run.closeoutSubmittedDate!}</dd>
+
+            <dt>Close Out Completed</dt>
+            <dd>${procedureDetails.run.closeoutCompletedDate!}</dd>
+        </dl>
+
+    </div>
+
+
+
+</body>
+
+</html>

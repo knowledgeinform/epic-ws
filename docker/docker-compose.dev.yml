@@ -1,0 +1,35 @@
+version: '3'
+services:
+  epic-ws:
+    depends_on:
+      - epic-db-updater
+    environment:
+      JPDA_ADDRESS: "8000"
+      JPDA_TRANSPORT: "dt_socket"
+      JPDA_OPTS: "-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n"
+    build:
+      context: ../
+      dockerfile: docker/dev.Dockerfile
+    volumes:
+      - ~/.m2:/.m2
+      - ../templates:/epic-templates
+      - ../../export:/epic-export
+      - ../../client-logs:/epic-client-logs
+    ports:
+      - "8080:8080"
+      - "8000:8000"
+  epic-db:
+    build:
+      context: ../
+      dockerfile: docker/db.Dockerfile
+    ports:
+      - "3306:3306"
+  #    TODO: uncomment once db issues are resolved
+  #    volumes:
+  #      - ./mysql_data:/var/lib/mysql
+  epic-db-updater:
+    depends_on:
+      - epic-db
+    build:
+      context: ../
+      dockerfile: docker/db-updater.Dockerfile

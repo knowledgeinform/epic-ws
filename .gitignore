@@ -1,0 +1,10 @@
+/EPIC-WS.iml
+/.idea/
+/target/
+/.settings
+/.project
+/.factorypath
+/.classpath
+/GSW_CONFIG
+.DS_STORE
+/docker/mysql_data/

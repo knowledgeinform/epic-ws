@@ -1,0 +1,44 @@
+<Configuration status="TRACE">
+    <Properties>
+        <Property name="logPath">/project/epic/log/</Property>
+        <Property name="rollingFileName">EPIC</Property>
+    </Properties>
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%highlight{%-5level}] %d{DEFAULT} [threadId=%tid] [%t] %c{1}.%M() - %msg%n"/>
+        </Console>
+        <RollingFile name="rollingFile" fileName="${logPath}/${rollingFileName}.log" filePattern="${logPath}/${rollingFileName}_%d{yyyy-MM-dd}.log">
+            <PatternLayout pattern="[%highlight{%-5level}] %d{DEFAULT} [threadId=%tid] [%t] %c{1}.%M() - %msg%n"/>
+            <Policies>
+                <!-- Causes a rollover if the log file is older than the current JVM's start time -->
+                <OnStartupTriggeringPolicy/>
+                <!-- Causes a rollover once the date/time pattern no longer applies to the active file -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <!-- Log everything in hibernate -->
+        <!--<Logger name="org.hibernate" level="info" additivity="false">-->
+            <!--<AppenderRef ref="console"/>-->
+        <!--</Logger>-->
+        <!--<Logger name="org.hibernate.stat" level="debug" additivity="false">-->
+            <!--<AppenderRef ref="console"/>-->
+        <!--</Logger>-->
+        <!-- Log SQL statements -->
+        <!--<Logger name="org.hibernate.SQL" level="info" additivity="false">-->
+            <!--<AppenderRef ref="console"/>-->
+        <!--</Logger>-->
+        <!-- Log JDBC bind parameters -->
+        <!--<Logger name="org.hibernate.type.descriptor.sql" level="info" additivity="false">-->
+            <!--<AppenderRef ref="console"/>-->
+        <!--</Logger>-->
+        <Logger name="org.hibernate.engine.internal.StatefulPersistenceContext" level="error">
+        </Logger>
+
+        <Root level="INFO" additivity="false">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="rollingFile"/>
+        </Root>
+    </Loggers>
+</Configuration>

@@ -1,0 +1,39 @@
+version: '3'
+services:
+  epic-ws:
+    image: sd-artifactory.jhuapl.edu/sig-docker-local/scaide/epic/epic-ws:${EPIC_VERSION}
+    platform: linux/amd64
+    depends_on:
+      - epic-db-updater
+    environment:
+      JPDA_ADDRESS: "8000"
+      JPDA_TRANSPORT: "dt_socket"
+      JPDA_OPTS: "-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n"
+    build:
+      context: ../
+      dockerfile: docker/ws.Dockerfile
+    volumes:
+      - ~/.m2:/.m2 # Only needed for build
+      - ${TEMPLATES_DIR}:/epic-templates
+      - ${EXPORT_DIR}:/epic-export
+      - ${CLIENT_LOGS_DIR}:/epic-client-logs
+    ports:
+      - "8080:8080"
+      - "8000:8000"
+  epic-db:
+    image: sd-artifactory.jhuapl.edu/sig-docker-local/scaide/epic/epic-db:${EPIC_VERSION}
+    build: 
+      context: ../
+      dockerfile: docker/db.Dockerfile
+    ports:
+      - "3306:3306"
+#    TODO: uncomment once db issues are resolved
+#    volumes:
+#      - ./mysql_data:/var/lib/mysql
+  epic-db-updater:
+    image: sd-artifactory.jhuapl.edu/sig-docker-local/scaide/epic/epic-db-updater:${EPIC_VERSION}
+    depends_on:
+      - epic-db
+    build: 
+      context: ../
+      dockerfile: docker/db-updater.Dockerfile
