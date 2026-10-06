@@ -224,8 +224,7 @@ public class Export
 
             if (pd.getEditType().equals(EditType.ORIGINAL) && pd.getProcedureDetailRuns().isEmpty())
             {
-                LOGGER.error("exportProcedureResource() failed to create program export archive for procedure " + procedureId +
-                        ". Procedure has no runs to export.");
+                LOGGER.error("exportProcedureResource() failed to create program export archive for procedure {}. Procedure has no runs to export.", procedureId);
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Procedure has no runs. Cannot export.").build();
             }
 
@@ -233,8 +232,7 @@ public class Export
 
             if (!archive.exists())
             {
-                LOGGER.error("exportProcedureResource() failed to create program export archive for procedure " + procedureId +
-                        ". Archive does not exist.");
+                LOGGER.error("exportProcedureResource() failed to create program export archive for procedure {}. Archive does not exist.", procedureId);
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Procedure export archive does not exist. " +
                         "Possibly there are no runs for this program.").build();
             }
@@ -437,7 +435,7 @@ public class Export
      * @return
      * @throws Exception
      */
-    public File exportProcedure(EntityManager em, ProcedureDetails procedure) throws Exception
+    private File exportProcedure(EntityManager em, ProcedureDetails procedure) throws Exception
     {
         // Save as {timestamp}/{procedureDefId}/export file
 
@@ -461,7 +459,7 @@ public class Export
      * @return
      * @throws Exception
      */
-    public File getProcedureAttachmentArchive(EntityManager em, ProcedureDetails run) throws Exception
+    private File getProcedureAttachmentArchive(EntityManager em, ProcedureDetails run) throws Exception
     {
 
         // Save as {timestamp}/{procedureDefId}/export file
@@ -484,7 +482,7 @@ public class Export
     /**
      * Sets up the copying of all the procedure and step_def attachments for a procedure/run
      */
-    public void copyAllProcedureDefAttachments(EntityManager em, ProcedureDetails procedure, java.nio.file.Path rootPath, java.nio.file.Path targetPath, ZipOutputStream zipOutputStream)
+    private void copyAllProcedureDefAttachments(EntityManager em, ProcedureDetails procedure, java.nio.file.Path rootPath, java.nio.file.Path targetPath, ZipOutputStream zipOutputStream)
             throws WebApplicationException
     {
         Set<Attachment> procedureAttachments = (Set<Attachment>) (Object) procedure.getProcedureHeader().getAttachments();
@@ -503,7 +501,7 @@ public class Export
      * @param zipOutputStream
      * @throws WebApplicationException
      */
-    public void copyAllRunAttachments(EntityManager em, ProcedureDetails run, java.nio.file.Path rootPath, java.nio.file.Path targetPath, ZipOutputStream zipOutputStream)
+    private void copyAllRunAttachments(EntityManager em, ProcedureDetails run, java.nio.file.Path rootPath, java.nio.file.Path targetPath, ZipOutputStream zipOutputStream)
             throws WebApplicationException
     {
 
@@ -524,7 +522,7 @@ public class Export
     /**
      * Sets up the export for the run/procedure. First attachments are copied to the zip stream, then the run html file is created.
      */
-    public void exportProcedure(EntityManager em, ProcedureDetails procedure, java.nio.file.Path rootPath, java.nio.file.Path procedureDefOutputPath, ZipOutputStream zipStream) throws Exception
+    private void exportProcedure(EntityManager em, ProcedureDetails procedure, java.nio.file.Path rootPath, java.nio.file.Path procedureDefOutputPath, ZipOutputStream zipStream) throws Exception
     {
         final java.nio.file.Path exportAttachmentsPath = procedureDefOutputPath.resolve("attachments");
         final java.nio.file.Path exportRunsPath = procedureDefOutputPath.resolve("runs");
@@ -671,7 +669,7 @@ public class Export
      * Note that this does not return the zip file to the endpoint; because these files get so large,
      * they are generated in a separate thread and then when done, the user is emailed a download link.
      */
-    public void exportProgram(EntityManager em, Program program, Long exportId) throws Exception
+    private void exportProgram(EntityManager em, Program program, Long exportId) throws Exception
     {
         List<Integer> procedurePks = em
                 .createQuery("SELECT DISTINCT v.originalProcedureDetails.pk FROM ProcedureDetails v WHERE v.procedureDef.program.pk = :programPk AND v.originalProcedureDetails != null ",

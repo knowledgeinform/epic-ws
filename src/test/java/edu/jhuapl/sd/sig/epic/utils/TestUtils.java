@@ -12,10 +12,8 @@ package edu.jhuapl.sd.sig.epic.utils;
 import com.thedeanda.lorem.Lorem;
 import com.thedeanda.lorem.LoremIpsum;
 import edu.jhuapl.sd.sig.epic.data.TestProcedureDAO;
-import edu.jhuapl.sd.sig.epic.data.util.ConfigureAPI;
 import edu.jhuapl.sd.sig.epic.data.util.JPAUtils;
 import edu.jhuapl.sd.sig.epic.model.*;
-import edu.jhuapl.sd.sig.epic.startup.AppConfiguration;
 
 import javax.persistence.EntityManager;
 import java.io.ByteArrayInputStream;
@@ -23,8 +21,6 @@ import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestUtils
 {
@@ -37,15 +33,6 @@ public class TestUtils
     static Random rand = new Random();
 
     static Lorem lorem = LoremIpsum.getInstance();
-
-    public static void init()
-    {
-        if (!ConfigureAPI.isInitialized())
-        {
-            AppConfiguration.loadAppConfiguration();
-            ConfigureAPI.init();
-        }
-    }
 
     public static Date getFullDateFromString(String fullDateString)
     {
@@ -73,22 +60,6 @@ public class TestUtils
             e.printStackTrace();
         }
         return d;
-    }
-
-    public static void purgeTestProcedures()
-    {
-        try
-        {
-            TestProcedureDAO.deleteProcedureDefAfterDate(getShortDateFromString(TEST_START_DATE));
-
-            // check that all have been deleted
-            Set<ProcedureDef> procedureDefs = TestProcedureDAO.getProcedureDefAfterDate(getShortDateFromString(TEST_START_DATE));
-            assertEquals(0, procedureDefs.size());
-        }
-        catch (Exception ex)
-        {
-            ex.printStackTrace();
-        }
     }
 
     public static <T> InputStream createRemoveAndUpdateDisplayOrderPatchForArrayAsInputStream(int indexToRemove, Collection<T> arrayToUpdate)
@@ -135,5 +106,33 @@ public class TestUtils
         detail.setStepGroupDefs(DataGeneratorUtils.generateStepGroupDefs(1, 1, 0, 3, detail, null, detail, 0));
 
         return JPAUtils.getRecordById(em, ProcedureDetails.class, detail.getPk());
+    }
+
+    public static Users getTestUser()
+    {
+        Users user = new Users();
+        user.setUsername(lorem.getLastName());
+        user.setDisplayName(lorem.getFirstName() + " " + lorem.getLastName());
+        user.setEmail(lorem.getEmail());
+        return user;
+    }
+
+    public static Program getTestProgram()
+    {
+        Program program = new Program();
+        program.setPk(1);
+        program.setName("EPIC");
+        program.setCode("test");
+        return program;
+    }
+
+    public static Subsystem getTestSubSystem()
+    {
+        Subsystem subsystem = new Subsystem();
+        subsystem.setPk(1);
+        subsystem.setName("unit_tests");
+        subsystem.setCode("test");
+        subsystem.setShortName("epic");
+        return subsystem;
     }
 }

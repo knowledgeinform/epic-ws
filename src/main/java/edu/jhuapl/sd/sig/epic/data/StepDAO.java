@@ -194,8 +194,9 @@ public class StepDAO
                     }
                 }
                 stepDef.getStepTableRows().clear();
+                // this flush is important in order for new table rows to not raise a constraint violation exception
+                em.flush();
                 stepDef.getStepTableRows().addAll(data.getStepTableRows());
-                //em.flush();
 
                 /*
                  * OLD Implementation, this fails with a constraint violation exception because of unique constraint.

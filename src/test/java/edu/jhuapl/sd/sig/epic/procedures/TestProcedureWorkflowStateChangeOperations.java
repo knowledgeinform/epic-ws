@@ -14,6 +14,7 @@ import edu.jhuapl.sd.sig.epic.data.ProcedureDetailsDAO;
 import edu.jhuapl.sd.sig.epic.data.util.JPAUtils;
 import edu.jhuapl.sd.sig.epic.model.*;
 import edu.jhuapl.sd.sig.epic.utils.DataGeneratorUtils;
+import edu.jhuapl.sd.sig.epic.utils.DbTestContainer;
 import edu.jhuapl.sd.sig.epic.utils.TestUtils;
 import org.junit.jupiter.api.*;
 
@@ -29,32 +30,26 @@ public class TestProcedureWorkflowStateChangeOperations
     private static EntityManager em = null;
     private static ProcedureDetails procedureDetails = null;
 
+    private static DbTestContainer container;
+
     @BeforeAll
-    public static void beforeClass()
+    static void beforeAll() throws Exception
     {
-        TestUtils.init();
+        container = new DbTestContainer();
+        container.start();
         em = JPAUtils.getEntityManager();
     }
 
     @AfterAll
-    public static void afterClass()
+    static void afterAll()
     {
-        JPAUtils.closeEntityManager(em);
+        container.stop();
     }
 
     @BeforeEach
     public void before()
     {
-        try
-        {
-            JPAUtils.closeEntityManager(em);
-            em = JPAUtils.getEntityManager();
-            procedureDetails = TestUtils.createDraftProcedureDetails(em);
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
+        procedureDetails = TestUtils.createDraftProcedureDetails(em);
     }
 
     @Test

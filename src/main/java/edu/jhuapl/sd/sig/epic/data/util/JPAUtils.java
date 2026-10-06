@@ -45,6 +45,8 @@ public class JPAUtils
     private static String dbVersionErrorMsg = null;
     private static JaversSqlRepository javersSqlRepository = null;
     private static Javers javers = null;
+    private static volatile boolean initialized = false;
+    private static final Object INIT_LOCK = new Object();
 
     static
     {
@@ -54,124 +56,170 @@ public class JPAUtils
             LOGGER.fatal(msg);
             throw new RuntimeException(msg);
         }
-        else
+        // Initialization is now lazy so tests can supply their own EntityManagerFactory
+        // before any JPA work is performed.
+    }
+
+    /**
+     * Initialize JPAUtils with the standard production configuration.
+     */
+    public static void init()
+    {
+        initialize(null);
+    }
+
+    /**
+     * Initialize JPAUtils with a specific EntityManagerFactory. This is intended
+     * for integration tests that run against a throwaway database container.
+     *
+     * @param providedEmf the EntityManagerFactory to use; if null, the production
+     *     configuration is used.
+     */
+    public static void initialize(EntityManagerFactory providedEmf)
+    {
+        synchronized (INIT_LOCK)
         {
+            if (initialized)
+            {
+                return;
+            }
+
+            if (providedEmf != null)
+            {
+                emf = providedEmf;
+            }
+            else
+            {
+                createProductionEntityManagerFactory();
+            }
+
             try
             {
-                File f = new File(System.getenv("GSW_CONFIG") + "/epicdb_override.cfg");
-                Map<String, String> props = new HashMap<>();
-
-                if (f.exists())
-                {
-                    LOGGER.info("Reading database configuration override file: {}", f.getAbsolutePath());
-                    props = readPropsFromFile(f);
-                }
-                else
-                {
-                    LOGGER.info("No database configuration override file found at : " + f.getAbsolutePath());
-                }
-
-                try
-                {
-                    emf = Persistence.createEntityManagerFactory(ConfigureAPI.getPersistenceUnit(), props);
-                }
-                catch (SearchException se)
-                {
-                    int count = 0;
-                    while (emf == null && count < 10)
-                    {
-                        // if here, it's likely that Elasticsearch isn't ready yet; try again 10 times.
-                        try
-                        {
-                            Thread.sleep(6000);
-                        }
-                        catch (InterruptedException ie)
-                        {
-                            LOGGER.error("Thread sleep was interrupted", ie);
-                        }
-                        emf = Persistence.createEntityManagerFactory(ConfigureAPI.getPersistenceUnit(), props);
-                        count++;
-                    }
-                    if (emf == null)
-                    {
-                        LOGGER.error("Failed to initialize entity manager factory due to search exception; possibly " +
-                                "Elasticsearch isn't running?", se);
-                    }
-                }
-                try
-                {
-                    checkDbVersion();
-                }
-                catch (IllegalStateException e)
-                {
-                    System.exit(-1);
-                }
+                checkDbVersion();
             }
-            catch (PersistenceException e)
+            catch (IllegalStateException e)
             {
-                // Note: If we fail to create the EMF, we will likely throw an exception in the call to the logger.  Print the
-                // stack trace so it will be helpful for troubleshooting.
-                e.printStackTrace();
-                LOGGER.error("Error creating entity manager factory for persistence unit {}", ConfigureAPI.getPersistenceUnit(), e);
+                System.exit(-1);
             }
 
-            // initialize the Javers repository and initialize Javers instance
-            try
-            {
-                ConnectionProvider connectionProvider = new ConnectionProvider()
-                {
-                    private Connection conn;
-
-                    @Override
-                    public Connection getConnection() throws SQLException
-                    {
-                        if (conn == null)
-                        {
-                            Set<PooledDataSource> pdsSet = C3P0Registry.getPooledDataSources();
-                            Iterator<PooledDataSource> iterator = pdsSet.iterator();
-                            PooledDataSource pooledDataSource = iterator.next();
-                            conn = pooledDataSource.getConnection();
-                        }
-                        return conn;
-                    }
-                };
-                String databaseName = AppConfiguration.getConfigValue(AppConfiguration.AppConfigKey.DATABASE_NAME);
-                javersSqlRepository = SqlRepositoryBuilder
-                        .sqlRepository()
-                        .withSchema(databaseName)
-                        .withConnectionProvider(connectionProvider)
-                        .withDialect(DialectName.MYSQL)
-                        .build();
-                javers = JaversBuilder
-                        .javers()
-                        .registerJaversRepository(javersSqlRepository)
-                        .withObjectAccessHook(new HibernateEntityAccessHook())
-                        .build();
-            }
-            catch (Exception e)
-            {
-                LOGGER.error("Error initializing Javers repository and Javers instance", e);
-            }
-            //			Runtime.getRuntime().addShutdownHook(new Thread()
-            //			{
-            //				@Override
-            //				public void run()
-            //				{
-            //					//clean up EntityManagerFactory
-            //					if (emf != null)
-            //					{
-            //						emf.close();
-            //					}
-            //				}
-            //			});
+            initializeJavers();
+            initialized = true;
         }
     }
 
+    private static void createProductionEntityManagerFactory()
+    {
+        try
+        {
+            File f = new File(System.getenv("GSW_CONFIG") + "/epicdb_override.cfg");
+            Map<String, String> props = new HashMap<>();
+
+            if (f.exists())
+            {
+                LOGGER.info("Reading database configuration override file: {}", f.getAbsolutePath());
+                props = readPropsFromFile(f);
+            }
+            else
+            {
+                LOGGER.info("No database configuration override file found at : {}", f.getAbsolutePath());
+            }
+
+            try
+            {
+                emf = Persistence.createEntityManagerFactory(ConfigureAPI.getPersistenceUnit(), props);
+            }
+            catch (SearchException se)
+            {
+                int count = 0;
+                while (emf == null && count < 10)
+                {
+                    // if here, it's likely that Elasticsearch isn't ready yet; try again 10 times.
+                    try
+                    {
+                        Thread.sleep(6000);
+                    }
+                    catch (InterruptedException ie)
+                    {
+                        LOGGER.error("Thread sleep was interrupted", ie);
+                    }
+                    emf = Persistence.createEntityManagerFactory(ConfigureAPI.getPersistenceUnit(), props);
+                    count++;
+                }
+
+                if (emf == null)
+                {
+                    LOGGER.error("Failed to initialize entity manager factory due to search exception; possibly " +
+                            "Elasticsearch isn't running?", se);
+                }
+            }
+        }
+        catch (PersistenceException e)
+        {
+            // Note: If we fail to create the EMF, we will likely throw an exception in the call to the logger.  Print the
+            // stack trace so it will be helpful for troubleshooting.
+            e.printStackTrace();
+            LOGGER.error("Error creating entity manager factory for persistence unit {}", ConfigureAPI.getPersistenceUnit(), e);
+        }
+    }
+
+    private static void initializeJavers()
+    {
+        try
+        {
+            ConnectionProvider connectionProvider = new ConnectionProvider()
+            {
+                private Connection conn;
+
+                @Override
+                public Connection getConnection() throws SQLException
+                {
+                    if (conn == null)
+                    {
+                        Set<PooledDataSource> pdsSet = C3P0Registry.getPooledDataSources();
+                        Iterator<PooledDataSource> iterator = pdsSet.iterator();
+                        PooledDataSource pooledDataSource = iterator.next();
+                        conn = pooledDataSource.getConnection();
+                    }
+
+                    return conn;
+                }
+            };
+
+            String databaseName = AppConfiguration.getConfigValue(AppConfiguration.AppConfigKey.DATABASE_NAME);
+            javersSqlRepository = SqlRepositoryBuilder
+                    .sqlRepository()
+                    .withSchema(databaseName)
+                    .withConnectionProvider(connectionProvider)
+                    .withDialect(DialectName.MYSQL)
+                    .build();
+            javers = JaversBuilder
+                    .javers()
+                    .registerJaversRepository(javersSqlRepository)
+                    .withObjectAccessHook(new HibernateEntityAccessHook())
+                    .build();
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Error initializing Javers repository and Javers instance", e);
+        }
+    }
+
+    /**
+     * Close the current EntityManagerFactory and reset JPAUtils so it can be
+     * re-initialized (for example, with a different database in a later test run).
+     */
     public static void closeEntityManagerFactory()
     {
-        if (emf != null)
+        synchronized (INIT_LOCK)
         {
-            emf.close();
+            if (emf != null && emf.isOpen())
+            {
+                emf.close();
+            }
+            emf = null;
+            javers = null;
+            javersSqlRepository = null;
+            initialized = false;
         }
     }
 
@@ -184,7 +232,7 @@ public class JPAUtils
             em = emf.createEntityManager();
             VersionInfo version = em.find(VersionInfo.class, VersionInfo.Type.DATABASE);
 
-            if (version.getMajor() != DB_EXPECTED_MAJOR_VER)
+            if (!Objects.equals(version.getMajor(), DB_EXPECTED_MAJOR_VER))
             {
                 dbVersionErrorMsg = "Version mismatch.  Software: " +
                         DB_EXPECTED_MAJOR_VER + ", Database: " + version.getMajor() + "." + version.getMinor();
@@ -197,6 +245,11 @@ public class JPAUtils
             {
                 LOGGER.info("Database version check passed. Version is {}.{}", version.getMajor(), version.getMinor());
             }
+        }
+        catch (RuntimeException e)
+        {
+            LOGGER.error("Error checking database version: {}", e.getMessage());
+            throw new RuntimeException(e);
         }
         finally
         {
@@ -212,12 +265,25 @@ public class JPAUtils
 
     public static Javers getJavers()
     {
+        if (!initialized)
+        {
+            initialize(null);
+        }
         return javers;
+    }
+
+    public static EntityManagerFactory getEntityManagerFactory()
+    {
+        if (!initialized)
+        {
+            initialize(null);
+        }
+        return emf;
     }
 
     public static EntityManager getEntityManager()
     {
-        return emf.createEntityManager();
+        return getEntityManagerFactory().createEntityManager();
     }
 
     public static void closeEntityManager(EntityManager em)
@@ -254,8 +320,7 @@ public class JPAUtils
             return props;
         }
 
-        BufferedReader bufferedReader = new BufferedReader(fileReader);
-        try
+        try (BufferedReader bufferedReader = new BufferedReader(fileReader))
         {
             props = new HashMap<>();
             String line;
@@ -279,21 +344,6 @@ public class JPAUtils
         {
             e.printStackTrace();
             LOGGER.error("Error reading database configuration override file: {}", f.getAbsolutePath(), e);
-        }
-        finally
-        {
-            if (bufferedReader != null)
-            {
-                try
-                {
-                    bufferedReader.close();
-                }
-                catch (IOException e)
-                {
-                    System.err.println("Could not close file " + f.getAbsolutePath());
-                    e.printStackTrace();
-                }
-            }
         }
 
         return props;

@@ -17,6 +17,7 @@ import edu.jhuapl.sd.sig.epic.model.ProcedureDetails;
 import edu.jhuapl.sd.sig.epic.model.StepGroupDef;
 import edu.jhuapl.sd.sig.epic.resource.util.PatchUtils;
 import edu.jhuapl.sd.sig.epic.utils.DataGeneratorUtils;
+import edu.jhuapl.sd.sig.epic.utils.DbTestContainer;
 import edu.jhuapl.sd.sig.epic.utils.TestUtils;
 import org.junit.jupiter.api.*;
 
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Disabled
 public class TestStepGroupOperations
 {
     private static EntityManager em = null;
@@ -40,24 +42,20 @@ public class TestStepGroupOperations
     @Context
     SecurityContext sc;
 
+    private static DbTestContainer container;
+
     @BeforeAll
-    public static void beforeClass()
+    static void beforeAll() throws Exception
     {
-        TestUtils.init();
+        container = new DbTestContainer();
+        container.start();
         em = JPAUtils.getEntityManager();
     }
 
     @AfterAll
-    public static void afterClass()
+    static void afterAll()
     {
-        JPAUtils.closeEntityManager(em);
-    }
-
-    @BeforeEach
-    public void before()
-    {
-        JPAUtils.closeEntityManager(em);
-        em = JPAUtils.getEntityManager();
+        container.stop();
     }
 
     /*

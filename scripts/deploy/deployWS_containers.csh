@@ -61,7 +61,7 @@ endif
 echo "Database name set to " $databaseName
 set databaseHost = "sdint-mysql.jhuapl.edu"
 set databasePort = "3306"
-#set databasePassword = `grep -i 'db' $connection  | cut -f2 -d'='`
+set databasePassword = `grep -i 'db' $connection  | cut -f2 -d'='`
 
 # Set up environment
 setenv GSW_CONFIG /project/epic/config

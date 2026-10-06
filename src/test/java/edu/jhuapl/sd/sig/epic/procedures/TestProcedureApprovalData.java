@@ -9,12 +9,9 @@
  */
 package edu.jhuapl.sd.sig.epic.procedures;
 
-import edu.jhuapl.sd.sig.epic.data.TestProcedureDAO;
 import edu.jhuapl.sd.sig.epic.model.ProcedureApproval;
 import edu.jhuapl.sd.sig.epic.model.ProcedureApprovalType;
-import edu.jhuapl.sd.sig.epic.model.Users;
-
-import java.util.List;
+import edu.jhuapl.sd.sig.epic.utils.TestUtils;
 
 public enum TestProcedureApprovalData
 {
@@ -24,11 +21,10 @@ public enum TestProcedureApprovalData
         @Override
         public ProcedureApproval getTestData()
         {
-            List<Users> users = TestProcedureDAO.getAllUsers();
             ProcedureApproval procedureApproval = new ProcedureApproval();
             procedureApproval.setIsApproved(true);
             procedureApproval.setApprovalType(ProcedureApprovalType.APPROVER);
-            procedureApproval.setUsers(users.get(0));
+            procedureApproval.setUsers(TestUtils.getTestUser());
             return procedureApproval;
         }
     },
@@ -37,11 +33,10 @@ public enum TestProcedureApprovalData
         @Override
         public ProcedureApproval getTestData()
         {
-            List<Users> users = TestProcedureDAO.getAllUsers();
             ProcedureApproval procedureApproval = new ProcedureApproval();
             procedureApproval.setIsApproved(false);
             procedureApproval.setApprovalType(ProcedureApprovalType.REVIEWER);
-            procedureApproval.setUsers(users.get(0));
+            procedureApproval.setUsers(TestUtils.getTestUser());
             return procedureApproval;
         }
     },
@@ -50,11 +45,10 @@ public enum TestProcedureApprovalData
         @Override
         public ProcedureApproval getTestData()
         {
-            List<Users> users = TestProcedureDAO.getAllUsers();
             ProcedureApproval procedureApproval = new ProcedureApproval();
             procedureApproval.setIsApproved(false);
             procedureApproval.setApprovalType(ProcedureApprovalType.APPROVER);
-            procedureApproval.setUsers(users.get(0));
+            procedureApproval.setUsers(TestUtils.getTestUser());
             return procedureApproval;
         }
     };

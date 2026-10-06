@@ -16,6 +16,7 @@ import edu.jhuapl.sd.sig.epic.model.ProcedureDef;
 import edu.jhuapl.sd.sig.epic.model.ProcedureDetails;
 import edu.jhuapl.sd.sig.epic.model.ProcedureInstruction;
 import edu.jhuapl.sd.sig.epic.model.ProcedureStatus;
+import edu.jhuapl.sd.sig.epic.model.RedBlackLineComment;
 import edu.jhuapl.sd.sig.epic.model.Run;
 import edu.jhuapl.sd.sig.epic.model.RunApproval;
 import edu.jhuapl.sd.sig.epic.model.RunCloseoutComment;
@@ -28,6 +29,7 @@ import edu.jhuapl.sd.sig.epic.model.StepGroupDef;
 import edu.jhuapl.sd.sig.epic.model.TestingPhase;
 import edu.jhuapl.sd.sig.epic.model.Users;
 import edu.jhuapl.sd.sig.epic.model.display.dto.RunListDTO;
+import edu.jhuapl.sd.sig.epic.model.Status.RunStatusCounts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.Hibernate;
@@ -81,16 +83,13 @@ public class RunDAO
         Hibernate.initialize(details.getRunCloseoutStickyComments());
         Hibernate.initialize(details.getHistories());
 
-        details.getBlackLineComments().forEach(comment ->
-        {
-            Hibernate.initialize(comment.getProcedureChangeType());
-            Hibernate.initialize(comment.getBlackRedLineSignatures());
-        });
+        initializeLineCommentChangeTypes(details.getBlackLineComments());
+        initializeLineCommentChangeTypes(details.getRedLineComments());
 
-        details.getRedLineComments().forEach(comment ->
+        Set<Integer> visitedGroupPks = new HashSet<>();
+        details.getStepGroupDefs().forEach(stepGroup ->
         {
-            Hibernate.initialize(comment.getProcedureChangeType());
-            Hibernate.initialize(comment.getBlackRedLineSignatures());
+            initializeStepGroup(stepGroup, visitedGroupPks);
         });
 
         ProcedureDetails original = details.getOriginalProcedureDetails();
@@ -100,6 +99,61 @@ public class RunDAO
             Hibernate.initialize(original.getHistories());
             Hibernate.initialize(original.getProcedureDetailRuns());
         }
+    }
+
+    /**
+     * Recursively initializes lazy-loaded black/red line comments and their
+     * signatures on step groups, steps, and child groups within a run.
+     *
+     * Uses a visited set to guard against infinite loops from circular references.
+     */
+    private static void initializeStepGroup(StepGroupDef group, Set<Integer> visitedGroupPks)
+    {
+        Integer groupPk = group.getPk();
+        if (groupPk != null && !visitedGroupPks.add(groupPk))
+        {
+            LOGGER.warn("Detected repeated step group reference while initializing step group pk={}", groupPk);
+            return;
+        }
+
+        Hibernate.initialize(group.getBlackLineComments());
+        Hibernate.initialize(group.getRedLineComments());
+        Hibernate.initialize(group.getStepDefs());
+        Hibernate.initialize(group.getStepGroupDefsChildren());
+
+        initializeLineCommentChangeTypes(group.getBlackLineComments());
+        initializeLineCommentChangeTypes(group.getRedLineComments());
+
+        group.getStepDefs().forEach(step ->
+        {
+            Hibernate.initialize(step.getBlackLineComments());
+            Hibernate.initialize(step.getRedLineComments());
+            initializeLineCommentChangeTypes(step.getBlackLineComments());
+            initializeLineCommentChangeTypes(step.getRedLineComments());
+        });
+
+        group.getStepGroupDefsChildren().forEach(childGroup ->
+        {
+            initializeStepGroup(childGroup, visitedGroupPks);
+        });
+    }
+
+    /**
+     * Initializes lazy-loaded procedure change type and black/red line signatures
+     * on each comment in the provided list.
+     */
+    private static void initializeLineCommentChangeTypes(List<? extends RedBlackLineComment> comments)
+    {
+        if (comments == null)
+        {
+            return;
+        }
+
+        comments.forEach(comment ->
+        {
+            Hibernate.initialize(comment.getProcedureChangeType());
+            Hibernate.initialize(comment.getBlackRedLineSignatures());
+        });
     }
 
     public static List<RunListDTO> getFavoriteRunList(EntityManager em, Integer userid)
@@ -258,6 +312,25 @@ public class RunDAO
             return true;
         }
         return false;
+    }
+
+    /**
+     * Check if a run name is unique, excluding a specific run.
+     * Used when editing a run's name to ensure it doesn't conflict with other runs.
+     * 
+     * @param em The entity manager
+     * @param name The name to check
+     * @param excludeRunPk The run PK to exclude from the check
+     * @return true if the name is unique (excluding the specified run)
+     */
+    public static boolean isRunNameUniqueExcludingRun(EntityManager em, String name, Integer excludeRunPk)
+    {
+        String q = "SELECT r FROM Run r WHERE LOWER(r.name) = :name AND r.pk != :excludePk";
+        TypedQuery<Run> tq = em.createQuery(q, Run.class);
+        tq.setParameter("name", name.toLowerCase());
+        tq.setParameter("excludePk", excludeRunPk);
+        List<Run> runs = tq.getResultList();
+        return runs.isEmpty();
     }
 
     public static Run transitionRunToReviewing(EntityManager em, Integer runPk, Users user)
@@ -593,6 +666,99 @@ public class RunDAO
             String message = "Could not retrieve list of all runs";
             LOGGER.error(message, e);
             throw new WebApplicationException(message, e);
+        }
+    }
+
+    public static RunStatusCounts getRunStatusCounts(EntityManager em, Integer programPk)
+    {
+        RunStatusCounts counts = new RunStatusCounts();
+
+        try
+        {
+            String query = "SELECT r.status, COUNT(r) FROM Run r " +
+                    "JOIN r.procedureDetails pd " +
+                    "JOIN pd.procedureDef pDef " +
+                    "WHERE pd.editType != :editType";
+
+            if (programPk != null)
+            {
+                query += " AND pDef.program.pk = :programPk";
+            }
+
+            query += " GROUP BY r.status";
+
+            TypedQuery<Object[]> q = em.createQuery(query, Object[].class);
+            q.setParameter("editType", EditType.ORIGINAL);
+            if (programPk != null)
+            {
+                q.setParameter("programPk", programPk);
+            }
+
+            List<Object[]> results = q.getResultList();
+
+            for (Object[] result : results)
+            {
+                RunStatus status = (RunStatus) result[0];
+                Long count = (Long) result[1];
+
+                switch (status)
+                {
+                    case RUNNING:
+                        counts.setRUNNING(count.intValue());
+                        break;
+                    case REVIEWING:
+                        counts.setREVIEWING(count.intValue());
+                        break;
+                    case CORRECTING:
+                        counts.setCORRECTING(count.intValue());
+                        break;
+                    case COMPLETED:
+                        counts.setCOMPLETED(count.intValue());
+                        break;
+                    case APPROVED:
+                        counts.setAPPROVED(count.intValue());
+                        break;
+                    case ABANDONED:
+                        counts.setABANDONED(count.intValue());
+                        break;
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Error retrieving run status counts", e);
+        }
+
+        return counts;
+    }
+
+    public static List<RunListDTO> getRunsByStatus(EntityManager em, Integer programPk, String status)
+    {
+        try
+        {
+            String query = "SELECT new edu.jhuapl.sd.sig.epic.model.display.dto.RunListDTO(pd, pDef.name, pDef.program, pDef.subsystem, r.createdDate, r.user) " +
+                    "FROM Run r JOIN r.procedureDetails pd JOIN pd.procedureDef pDef " +
+                    "WHERE pd.editType != :editType AND r.status = :status";
+
+            if (programPk != null)
+            {
+                query += " AND pDef.program.pk = :programPk";
+            }
+
+            TypedQuery<RunListDTO> q = em.createQuery(query, RunListDTO.class);
+            q.setParameter("editType", EditType.ORIGINAL);
+            q.setParameter("status", RunStatus.valueOf(status));
+            if (programPk != null)
+            {
+                q.setParameter("programPk", programPk);
+            }
+
+            return q.getResultList();
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Error retrieving runs by status", e);
+            throw new WebApplicationException("Failed to retrieve runs by status", e);
         }
     }
 }

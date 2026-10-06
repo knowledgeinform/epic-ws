@@ -61,7 +61,7 @@ endif
 echo "Database name set to " $databaseName
 set databaseHost = "sdint-mysql.jhuapl.edu"
 set databasePort = "3306"
-#set databasePassword = `grep -i 'db' $connection  | cut -f2 -d'='`
+set databasePassword = `grep -i 'db' $connection  | cut -f2 -d'='`
 
 # Check that tomcat is not running.
 set tomcatPid = `ps -ef | grep tomcat | grep -v grep | awk '{ print $2 }'`

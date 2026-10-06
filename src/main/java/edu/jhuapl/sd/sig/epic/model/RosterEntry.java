@@ -11,6 +11,7 @@ package edu.jhuapl.sd.sig.epic.model;
 
 import java.io.Serializable;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
@@ -47,7 +48,7 @@ public class RosterEntry implements Serializable
     private Users user;
 
     @Id
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(
             name = "program_pk",
             referencedColumnName = "pk",

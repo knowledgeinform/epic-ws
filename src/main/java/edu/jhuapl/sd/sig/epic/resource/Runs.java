@@ -14,9 +14,12 @@ import edu.jhuapl.sd.sig.epic.data.UsersDAO;
 import edu.jhuapl.sd.sig.epic.data.util.JPAUtils;
 import edu.jhuapl.sd.sig.epic.model.*;
 import edu.jhuapl.sd.sig.epic.model.ProcedureDetails;
+import edu.jhuapl.sd.sig.epic.model.display.dto.RunEditDTO;
+import edu.jhuapl.sd.sig.epic.model.display.dto.RunEditResult;
 import edu.jhuapl.sd.sig.epic.model.display.dto.RunListDTO;
 import edu.jhuapl.sd.sig.epic.resource.auth.Secured;
 import edu.jhuapl.sd.sig.epic.resource.util.GenericExceptionMapper;
+import edu.jhuapl.sd.sig.epic.service.RunService;
 import edu.jhuapl.sd.sig.epic.startup.EmailEngine;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -317,10 +320,47 @@ public class Runs
     }
 
     /*
-     Use this method for TESTING purposes only
+     * Use this method for TESTING purposes only
      */
     public void setSc(SecurityContext sc)
     {
         this.sc = sc;
+    }
+
+    /**
+     * Update run name and/or description.
+     * This endpoint handles the database update part of the dual persistence approach.
+     * The blackline comment is created separately via the existing saveNewBlackLines endpoint.
+     * 
+     * @param runEditDTO Contains runPk, name, and description to update
+     * @return RunEditResult with success status, previous values, and updated run
+     */
+    @PUT
+    @Consumes({MediaType.APPLICATION_JSON})
+    @Produces({MediaType.APPLICATION_JSON})
+    @Path("/UpdateRunMetadata")
+    public Response updateRunMetadata(RunEditDTO runEditDTO)
+    {
+        try
+        {
+            String username = sc.getUserPrincipal().getName();
+            RunService runService = new RunService();
+            RunEditResult result = runService.updateRunMetadata(runEditDTO, username);
+            if (result.isSuccess())
+            {
+                return Response.ok(result).build();
+            }
+            else
+            {
+                return Response.status(Response.Status.CONFLICT).entity(result).build();
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Error in controller updating run metadata", e);
+            RunEditResult errorResult = new RunEditResult(
+                    false, "Error updating run metadata: " + e.getMessage(), null, null, null);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errorResult).build();
+        }
     }
 }

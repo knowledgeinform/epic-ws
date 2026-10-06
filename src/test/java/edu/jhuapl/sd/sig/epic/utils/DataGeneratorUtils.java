@@ -143,6 +143,7 @@ public class DataGeneratorUtils
         detail.setStepGroupDefs(generateStepGroupDefs(numStepGroups, numStepGroups, minSteps, maxSteps, detail, null, detail, 1));
         Boolean fullyApproved = rand.nextBoolean();
         detail.setProcedureApprovals(generateProcedureApprovals(1, Math.min(numUsers, 3), detail, fullyApproved));
+        detail.setEditType(EditType.RUN);
         if (fullyApproved)
         {
             TestProcedureDAO.transitionToReadyWrapper(detail);
@@ -299,7 +300,7 @@ public class DataGeneratorUtils
                         ((StepCheckbox) step).setRunValue(rand.nextBoolean());
                     break;
                 default:
-                    // System.out.println("INVALID STEP INPUT TYPE!!!! "+ type);
+                    System.out.println("INVALID STEP INPUT TYPE!!!! " + type);
                     continue;
             }
 
@@ -682,4 +683,15 @@ public class DataGeneratorUtils
         System.out.println("Duration in minutes: " + duration.toMinutes());
     }
 
+    public static ProcedureDetails getTestRun()
+    {
+        ProcedureDetails pd = new ProcedureDetails();
+        pd.setPk(1);
+        pd.setId("TestProcDetails");
+        pd.setEditType(EditType.ORIGINAL);
+        pd.setEsd0(false);
+        pd.setHazardous(false);
+        pd.setStatus(ProcedureStatus.READY);
+        return pd;
+    }
 }

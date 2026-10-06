@@ -10,14 +10,16 @@
 package edu.jhuapl.sd.sig.epic.procedures;
 
 import edu.jhuapl.sd.sig.epic.data.TestProcedureDAO;
+import edu.jhuapl.sd.sig.epic.data.util.JPAUtils;
 import edu.jhuapl.sd.sig.epic.model.*;
 import edu.jhuapl.sd.sig.epic.resource.model.NewProcData;
-import edu.jhuapl.sd.sig.epic.utils.TestUtils;
+import edu.jhuapl.sd.sig.epic.utils.DbTestContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import javax.persistence.EntityManager;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 import java.util.ArrayList;
@@ -33,21 +35,28 @@ public class TestProcedureOperations
     @Context
     SecurityContext sc;
 
-    @BeforeAll
-    public static void beforeClass()
-    {
-        TestUtils.init();
-    }
-
+    private static EntityManager em;
     private static List<Integer> procedurePksAddedToDb = new ArrayList<>();
 
+    private static DbTestContainer container;
+
+    @BeforeAll
+    static void beforeAll() throws Exception
+    {
+        container = new DbTestContainer();
+        container.start();
+        em = JPAUtils.getEntityManager();
+    }
+
     @AfterAll
-    public static void afterClass()
+    static void afterAll()
     {
         for (Integer pk : procedurePksAddedToDb)
         {
             TestProcedureDAO.deleteProcedureDef(pk);
         }
+
+        container.stop();
     }
 
     /**
@@ -1049,6 +1058,13 @@ public class TestProcedureOperations
 
         // should not have approvals
         assertNull(clonedProcedureDetails.getProcedureApprovals());
+
+        // history: the cloned revision should record which procedure it was cloned from
+        assertEquals(1, clonedProcedureDetails.getHistories().size());
+        History cloneHistory = clonedProcedureDetails.getHistories().stream().findFirst().get();
+        assertEquals("Cloned from procedure " + procedureDetails.getId() + " (" + procedureDetails.getProcedureDef().getName() + ")",
+                cloneHistory.getDescription());
+        assertEquals(user.getUserId(), cloneHistory.getUser().getUserId());
 
         // procedure header user should match test data, other fields not equal to procedureDetails.getHeader
         ProcedureHeader clonedHeader = clonedProcedureDetails.getProcedureHeader();

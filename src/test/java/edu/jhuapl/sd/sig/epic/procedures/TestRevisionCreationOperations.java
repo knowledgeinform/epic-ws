@@ -16,7 +16,7 @@ import edu.jhuapl.sd.sig.epic.data.TestProcedureDetailsDAO;
 import edu.jhuapl.sd.sig.epic.data.util.JPAUtils;
 import edu.jhuapl.sd.sig.epic.model.*;
 import edu.jhuapl.sd.sig.epic.utils.DataGeneratorUtils;
-import edu.jhuapl.sd.sig.epic.utils.TestUtils;
+import edu.jhuapl.sd.sig.epic.utils.DbTestContainer;
 import org.junit.jupiter.api.*;
 
 import javax.persistence.EntityManager;
@@ -39,18 +39,22 @@ public class TestRevisionCreationOperations
     private static EntityManager em;
     private static Users user;
 
+    private static DbTestContainer container;
+
     @BeforeAll
-    public static void beforeClass()
+    static void beforeAll() throws Exception
     {
-        TestUtils.init();
-        user = DataGeneratorUtils.getRandomUser();
+        container = new DbTestContainer();
+        container.start();
         em = JPAUtils.getEntityManager();
+
+        user = DataGeneratorUtils.getRandomUser();
     }
 
     @AfterAll
-    public static void afterClass()
+    static void afterAll()
     {
-        JPAUtils.closeEntityManager(em);
+        container.stop();
     }
 
     @BeforeEach

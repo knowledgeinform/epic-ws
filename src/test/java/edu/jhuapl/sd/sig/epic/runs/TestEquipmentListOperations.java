@@ -13,6 +13,7 @@ import edu.jhuapl.sd.sig.epic.data.EquipmentListDAO;
 import edu.jhuapl.sd.sig.epic.data.util.JPAUtils;
 import edu.jhuapl.sd.sig.epic.model.*;
 import edu.jhuapl.sd.sig.epic.utils.DataGeneratorUtils;
+import edu.jhuapl.sd.sig.epic.utils.DbTestContainer;
 import edu.jhuapl.sd.sig.epic.utils.TestUtils;
 import org.junit.jupiter.api.*;
 
@@ -29,27 +30,29 @@ public class TestEquipmentListOperations
     private static EntityManager em;
     private static ProcedureDetails run;
 
+    private static DbTestContainer container;
+
     @BeforeAll
-    public static void beforeClass()
+    static void beforeAll() throws Exception
     {
-        TestUtils.init();
+        container = new DbTestContainer();
+        container.start();
+        em = JPAUtils.getEntityManager();
+    }
+
+    @AfterAll
+    static void afterAll()
+    {
+        container.stop();
     }
 
     @BeforeEach
     public void beforeEach() throws Exception
     {
-        em = JPAUtils.getEntityManager();
         run = TestUtils.createCleanRun();
 
         // assert that the run has no equipment
         assertNull(run.getRun().getEquipmentList());
-    }
-
-    @AfterEach
-    public void afterEach()
-    {
-        run = null;
-        JPAUtils.closeEntityManager(em);
     }
 
     @Test

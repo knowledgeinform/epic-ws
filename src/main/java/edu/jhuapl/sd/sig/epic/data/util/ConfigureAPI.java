@@ -26,8 +26,14 @@ public class ConfigureAPI
             // This will cause the static initialization block in JPAUtils to run
             // generating the entityManagerFactory and validating the database version
             INITIALIZED = true;
-            JPAUtils unused = new JPAUtils();
+            JPAUtils.init();
         }
+    }
+
+    public static void initForTest()
+    {
+        // This will cause API to initialize without needing to initialize the database
+        INITIALIZED = true;
     }
 
     public static boolean isInitialized()

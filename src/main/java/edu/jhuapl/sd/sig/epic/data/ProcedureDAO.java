@@ -24,6 +24,7 @@ import edu.jhuapl.sd.sig.epic.model.display.dto.FindProcedureDTO;
 import edu.jhuapl.sd.sig.epic.model.display.dto.ProcedureListDTO;
 import edu.jhuapl.sd.sig.epic.resource.model.NewProcData;
 import edu.jhuapl.sd.sig.epic.resource.model.ProcedureDefAttributes;
+import edu.jhuapl.sd.sig.epic.model.Status.ProcedureStatusCounts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.Hibernate;
@@ -170,7 +171,10 @@ public class ProcedureDAO
             em.flush();
 
             pdv.setId(program.getCode() + "-" + subsystem.getCode() + "-" + pd.getPk() + "-" + pdv.getProcedureDefVersion());
-            pdv.getHistories().add(new History(null, pdv, user));
+            History cloneHistory = new History(null, pdv, user);
+            cloneHistory.setDescription("Cloned from procedure " + originalProcedureDetails.getId()
+                    + " (" + originalProcedureDetails.getProcedureDef().getName() + ")");
+            pdv.getHistories().add(cloneHistory);
 
             LOGGER.debug("Commiting cloned procedure to database.");
 
@@ -384,5 +388,91 @@ public class ProcedureDAO
             throw new WebApplicationException("Error retrieving search results", e);
         }
         return findProcedureDTO;
+    }
+
+    public static ProcedureStatusCounts getProcedureStatusCounts(EntityManager em, Integer programPk)
+    {
+        ProcedureStatusCounts counts = new ProcedureStatusCounts();
+
+        try
+        {
+            String query = "SELECT pd.status, COUNT(pd) FROM ProcedureDetails pd " +
+                    "JOIN pd.procedureDef pDef " +
+                    "WHERE pd.editType = :editType";
+
+            if (programPk != null)
+            {
+                query += " AND pDef.program.pk = :programPk";
+            }
+
+            query += " GROUP BY pd.status";
+
+            TypedQuery<Object[]> q = em.createQuery(query, Object[].class);
+            q.setParameter("editType", EditType.ORIGINAL);
+            if (programPk != null)
+            {
+                q.setParameter("programPk", programPk);
+            }
+
+            List<Object[]> results = q.getResultList();
+
+            for (Object[] result : results)
+            {
+                ProcedureStatus status = (ProcedureStatus) result[0];
+                Long count = (Long) result[1];
+
+                switch (status)
+                {
+                    case DRAFT:
+                        counts.setDRAFT(count.intValue());
+                        break;
+                    case WAITING:
+                        counts.setWAITING(count.intValue());
+                        break;
+                    case APPROVED:
+                        counts.setAPPROVED(count.intValue());
+                        break;
+                    case READY:
+                        counts.setREADY(count.intValue());
+                        break;
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Error retrieving procedure status counts", e);
+        }
+
+        return counts;
+    }
+
+    public static List<ProcedureListDTO> getProceduresByStatus(EntityManager em, Integer programPk, String status)
+    {
+        try
+        {
+            String query = "SELECT new edu.jhuapl.sd.sig.epic.model.display.dto.ProcedureListDTO(pd, pDef.name, pDef.program, pDef.subsystem, ph.creationDate, ph.user) " +
+                    "FROM ProcedureDetails pd JOIN pd.procedureDef pDef JOIN pd.procedureHeader ph " +
+                    "WHERE pd.editType = :editType AND pd.status = :status";
+
+            if (programPk != null)
+            {
+                query += " AND pDef.program.pk = :programPk";
+            }
+
+            TypedQuery<ProcedureListDTO> q = em.createQuery(query, ProcedureListDTO.class);
+            q.setParameter("editType", EditType.ORIGINAL);
+            q.setParameter("status", ProcedureStatus.valueOf(status));
+            if (programPk != null)
+            {
+                q.setParameter("programPk", programPk);
+            }
+
+            return q.getResultList();
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Error retrieving procedures by status", e);
+            throw new WebApplicationException("Failed to retrieve procedures by status", e);
+        }
     }
 }

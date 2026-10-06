@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="2.2" xmlns="http://xmlns.jcp.org/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd">
+
+    <persistence-unit name="epicdb">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+        <class>edu.jhuapl.sd.sig.epic.model.AppConfiguration</class>
+        <class>edu.jhuapl.sd.sig.epic.model.ApprovalComment</class>
+        <class>edu.jhuapl.sd.sig.epic.model.ApprovalCommentReply</class>
+        <class>edu.jhuapl.sd.sig.epic.model.BlackLineComment</class>
+        <class>edu.jhuapl.sd.sig.epic.model.BlackRedLineSignature</class>
+        <class>edu.jhuapl.sd.sig.epic.model.Comment</class>
+        <class>edu.jhuapl.sd.sig.epic.model.EquipmentList</class>
+        <class>edu.jhuapl.sd.sig.epic.model.History</class>
+        <class>edu.jhuapl.sd.sig.epic.model.MandatoryInspectionSecondSignature</class>
+        <class>edu.jhuapl.sd.sig.epic.model.ProcedureApproval</class>
+        <class>edu.jhuapl.sd.sig.epic.model.ProcedureAttachment</class>
+        <class>edu.jhuapl.sd.sig.epic.model.ProcedureChangeType</class>
+        <class>edu.jhuapl.sd.sig.epic.model.ProcedureDef</class>
+        <class>edu.jhuapl.sd.sig.epic.model.ProcedureDetails</class>
+        <class>edu.jhuapl.sd.sig.epic.model.ProcedureHeader</class>
+        <class>edu.jhuapl.sd.sig.epic.model.ProcedureInstruction</class>
+        <class>edu.jhuapl.sd.sig.epic.model.Program</class>
+        <class>edu.jhuapl.sd.sig.epic.model.ProgramRole</class>
+        <class>edu.jhuapl.sd.sig.epic.model.RedLineComment</class>
+        <class>edu.jhuapl.sd.sig.epic.model.Run</class>
+        <class>edu.jhuapl.sd.sig.epic.model.RunApproval</class>
+        <class>edu.jhuapl.sd.sig.epic.model.RunAttachment</class>
+        <class>edu.jhuapl.sd.sig.epic.model.RunCloseoutComment</class>
+        <class>edu.jhuapl.sd.sig.epic.model.RunCloseoutCommentReply</class>
+        <class>edu.jhuapl.sd.sig.epic.model.RunCloseoutStickyComment</class>
+        <class>edu.jhuapl.sd.sig.epic.model.RunStepAttachment</class>
+        <class>edu.jhuapl.sd.sig.epic.model.RunStepComment</class>
+        <class>edu.jhuapl.sd.sig.epic.model.StepCheckbox</class>
+        <class>edu.jhuapl.sd.sig.epic.model.StepDef</class>
+        <class>edu.jhuapl.sd.sig.epic.model.StepDefAttachment</class>
+        <class>edu.jhuapl.sd.sig.epic.model.StepGroupDef</class>
+        <class>edu.jhuapl.sd.sig.epic.model.StepSingleValue</class>
+        <class>edu.jhuapl.sd.sig.epic.model.StepTable</class>
+        <class>edu.jhuapl.sd.sig.epic.model.StepTableCell</class>
+        <class>edu.jhuapl.sd.sig.epic.model.StepTableRow</class>
+        <class>edu.jhuapl.sd.sig.epic.model.Subsystem</class>
+        <class>edu.jhuapl.sd.sig.epic.model.TestingPhase</class>
+        <class>edu.jhuapl.sd.sig.epic.model.Users</class>
+        <class>edu.jhuapl.sd.sig.epic.model.VersionInfo</class>
+        <class>edu.jhuapl.sd.sig.epic.model.WitnessSecondSignature</class>
+
+        <class>edu.jhuapl.sd.sig.epic.model.RosterEntry</class>
+
+        <properties>
+            <property name="hibernate.connection.username" value="epicdb_user"/>
+            <property name="hibernate.connection.password" value="epicdb_pass"/>
+            <property name="hibernate.connection.url" value="jdbc:mariadb://localhost:3306/epicdb"/>
+            <property name="hibernate.connection.driver_class" value="org.mariadb.jdbc.Driver"/>
+            <property name="hibernate.show_sql" value="false"/>
+            <property name="hibernate.format_sql" value="false"/>
+
+            <property name="hibernate.dialect" value="org.hibernate.dialect.MariaDBDialect"/>
+            <property name="hibernate.c3p0.max_size" value="50"/>
+            <property name="hibernate.c3p0.min_size" value="0"/>
+            <property name="hibernate.c3p0.acquire_increment" value="1"/>
+            <property name="hibernate.c3p0.idle_test_period" value="300"/>
+            <property name="hibernate.c3p0.max_statements" value="0"/>
+            <property name="hibernate.c3p0.timeout" value="100"/>
+            <property name="hibernate.connection.provider_class" value="org.hibernate.c3p0.internal.C3P0ConnectionProvider"/>
+            <!-- property name="hibernate.c3p0.unreturnedConnectionTimeout" value="30" / -->
+            <!-- property name="hibernate.c3p0.debugUnreturnedConnectionStackTraces" value="true" / -->
+            <property name="hibernate.jdbc.lob.non_contextual_creation" value="true"/>
+            <!--<property name="hibernate.search.backend.directory.root" value="/project/epic/data/index"/>-->
+        </properties>
+    </persistence-unit>
+</persistence>

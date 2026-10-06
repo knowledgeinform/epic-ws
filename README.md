@@ -45,56 +45,16 @@ it will be stored and hosted locally on your machine. Also note that if there ha
 will need to destroy the containers, delete the `mysql_data` directory, and then rebuild and run the containers.
 
 ## Running Tests
-Until the resolution of [EPIC-1301](https://sd-jira.jhuapl.edu/browse/EPIC-1301), tests must be run using a combination of docker and the local machine.
 
-## Testing/debugging tests locally  
-- Follow `Running the test container` section then
-- Follow the `Running the tests locally` (run/debug tests in your IDE)
+EPIC utilizes integration tests that requires a database in order to run. 
+To handle this, we have implemented [test containers](https://testcontainers.com/) to standup a temporary database in order to execute these.
+Out of the box, test containers runs using Docker, therefore, in order to utilize Podman, we will need to update our environment.
+This includes updating a set of environment variables to the following:
 
-
-### Running the test container
-To run the test container, perform the following steps:
-```
-cd docker
-podman-compose stop
-podman-compose -p epic-test down
-podman-compose -p epic-test build --build-arg SKIP_TESTS=true
-podman-compose -p epic-test up
-```
-If the container initializes with errors, try bringing it up a second time without rebuilding.
-
-### Running the tests locally
-
-- Create an equivalent to the operational /project/epic directory on your local system
-- Copy the `config` directory (NOT `docker/config`), and its contents to the operational directory on your local system
-- Create the following additional sub-directories in the local operational directory
-  - `export`
-  - `client-logs`
-  - `templates`
-- Within the `config` directory, edit `epic.properties` with values that match your local environment. It should look something like this:
-```
-ALLOWED_ORIGIN=http://localhost:4200
-DISABLE_EMAIL=true
-EXPORT_ROOT_DIR=path/to/epic-export/on/local/machine
-TEMPLATES_ROOT_DIR=path/to/templates/on/local/machine
-CLIENT_LOGS_DIR=path/to/epic-client-logs/on/local/machine
-DATABASE_NAME=epiclocaldb
-ATTTACHMENT_MAX_ALLOWED_FILE_SIZE_BYTES=10737418240
-```
-- Within the `config` directory, edit `epicdb_override.cfg` with values that match your local machine. It should look 
-something like this:
-```
-hibernate.connection.url,jdbc:mariadb://localhost:3306/epiclocaldb?sessionVariables=optimizer_search_depth=0
-hibernate.connection.username,epicdb_user
-hibernate.connection.password,epicdb_pass
-```
-
-- Additionally, update `src/META-INF/persistence.xml` `<property name="hibernate.search.backend.directory.root" value="/project/epic/data/index"/>`    
-value to path on your local machine.
-    - NOTE: DO NOT CHECK THIS CHANGE INTO THE REMOTE REPO!
-
-- Recycle the test container and once it is up and running, you can run the top level EpicTestSuite or any of the individual test within the `test.edu.jhuapl.sd.sig.epic` folder
-  - Within your run configuration, you must set the environment variable $GSW_CONFIG to point to your local `config` directory
+- DOCKER_HOST=unix://$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')
+- TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
+- TESTCONTAINERS_RYUK_DISABLED=true
+- TESTCONTAINERS_RYUK_CONTAINER_PRIVILEGED=true
 
 ### Running Tests with JMeter
 

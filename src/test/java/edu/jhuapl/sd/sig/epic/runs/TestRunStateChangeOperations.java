@@ -13,8 +13,8 @@ import edu.jhuapl.sd.sig.epic.data.ApprovalsDAO;
 import edu.jhuapl.sd.sig.epic.data.RunDAO;
 import edu.jhuapl.sd.sig.epic.data.util.JPAUtils;
 import edu.jhuapl.sd.sig.epic.model.*;
-import edu.jhuapl.sd.sig.epic.startup.AppConfiguration;
 import edu.jhuapl.sd.sig.epic.utils.DataGeneratorUtils;
+import edu.jhuapl.sd.sig.epic.utils.DbTestContainer;
 import edu.jhuapl.sd.sig.epic.utils.TestUtils;
 import org.junit.jupiter.api.*;
 
@@ -32,18 +32,20 @@ public class TestRunStateChangeOperations
     private static EntityManager em = null;
     private static ProcedureDetails run = null;
 
+    private static DbTestContainer container;
+
     @BeforeAll
-    public static void beforeClass()
+    static void beforeAll() throws Exception
     {
-        AppConfiguration.loadAppConfiguration();
-        TestUtils.init();
+        container = new DbTestContainer();
+        container.start();
         em = JPAUtils.getEntityManager();
     }
 
     @AfterAll
-    public static void afterClass()
+    static void afterAll()
     {
-        JPAUtils.closeEntityManager(em);
+        container.stop();
     }
 
     @BeforeEach

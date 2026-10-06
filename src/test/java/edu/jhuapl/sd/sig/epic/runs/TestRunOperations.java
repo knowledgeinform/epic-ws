@@ -16,6 +16,7 @@ import edu.jhuapl.sd.sig.epic.data.util.JPAUtils;
 import edu.jhuapl.sd.sig.epic.model.*;
 import edu.jhuapl.sd.sig.epic.resource.Runs;
 import edu.jhuapl.sd.sig.epic.utils.DataGeneratorUtils;
+import edu.jhuapl.sd.sig.epic.utils.DbTestContainer;
 import edu.jhuapl.sd.sig.epic.utils.TestUtils;
 import org.junit.jupiter.api.*;
 
@@ -28,36 +29,79 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TestRunOperations
 {
-    private static List<Integer> procedurePksAddedToDb = new ArrayList<>();
+    private final static List<Integer> procedurePksAddedToDb = new ArrayList<>();
     private static EntityManager em = null;
-    private Runs runEndpoint = new Runs();
+    private final Runs runEndpoint = new Runs();
 
     @Context
     SecurityContext sc;
 
+    private static DbTestContainer container;
+
     @BeforeAll
-    public static void beforeClass()
+    static void beforeAll() throws Exception
     {
-        TestUtils.init();
+        container = new DbTestContainer();
+        container.start();
         em = JPAUtils.getEntityManager();
+
         DataGeneratorUtils.generateRandomUsers(3);
     }
 
-    @BeforeEach
-    public void before()
-    {
-        JPAUtils.closeEntityManager(em);
-        em = JPAUtils.getEntityManager();
-    }
-
     @AfterAll
-    public static void afterClass()
+    static void afterAll()
     {
         for (Integer pk : procedurePksAddedToDb)
         {
             TestProcedureDAO.deleteProcedureDef(pk);
         }
-        JPAUtils.closeEntityManager(em);
+        container.stop();
+    }
+
+    @Test
+    public void getRun_whenStepBlacklineExists_returnsProcedureChangeTypeOnComment() throws Exception
+    {
+        ProcedureDetails run = TestUtils.createCleanRun();
+        StepDef step = run.getAllSteps().iterator().next();
+        Users user = DataGeneratorUtils.getRandomUser();
+        ProcedureChangeType changeType = DataGeneratorUtils.generateProcedureChangeType();
+
+        BlackLineComment comment = new BlackLineComment();
+        comment.setCommentTimestamp(new Date());
+        comment.setCommentText("step blackline regression");
+        comment.setCommentType(CommentType.BLACK_LINE_COMMENT);
+        comment.setUsers(user);
+        comment.setStepDef(step);
+        comment.setProcedureChangeType(changeType);
+
+        JPAUtils.basicTransaction(txEm ->
+        {
+            BlackLineComment managedComment = new BlackLineComment();
+            managedComment.setCommentTimestamp(comment.getCommentTimestamp());
+            managedComment.setCommentText(comment.getCommentText());
+            managedComment.setCommentType(comment.getCommentType());
+            managedComment.setUsers(txEm.find(Users.class, user.getUserId()));
+            managedComment.setStepDef(txEm.find(step.getClass(), step.getPk()));
+            managedComment.setProcedureChangeType(txEm.find(ProcedureChangeType.class, changeType.getPk()));
+            txEm.persist(managedComment);
+        }, "Failed to persist step blackline test data");
+
+        Run loadedRun = runEndpoint.getRun(run.getId());
+        StepDef loadedStep = loadedRun.getProcedureDetails().getAllSteps().stream()
+                .filter(candidate -> candidate.getPk().equals(step.getPk()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Expected run step was not returned"));
+
+        BlackLineComment loadedComment = loadedStep.getBlackLineComments().stream()
+                .filter(savedComment -> "step blackline regression".equals(savedComment.getCommentText()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Expected step blackline was not returned"));
+
+        assertNotNull(loadedComment.getProcedureChangeType());
+        assertEquals(changeType.getPk(), loadedComment.getProcedureChangeType().getPk());
+
+        // Before adding initialization of nested step definitions, we got a lazy initialization error
+        assertEquals(changeType.getName(), loadedComment.getProcedureChangeType().getName());
     }
 
     //    @Test

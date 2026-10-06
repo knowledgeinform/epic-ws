@@ -17,7 +17,6 @@
         <log4j.version>2.25.3</log4j.version>
         <mariadb.connector.version>2.7.13</mariadb.connector.version>
         <junit.version>5.14.4</junit.version>
-        <junit.platform.version>1.14.4</junit.platform.version>
         <jjwt.version>0.13.0</jjwt.version>
         <lombok.version>1.18.42</lombok.version>
         <lorem.version>2.2</lorem.version>
@@ -31,9 +30,9 @@
         <!-- Not Updated due to complexity-->
         <hibernate.version>5.5.6.Final</hibernate.version>
         <hibernate-search.version>6.1.0.Final</hibernate-search.version>
-        <jackson.version>2.7.9</jackson.version>
-        <jackson-annotations.version>2.7.9</jackson-annotations.version>
-        <jackson-hibernate5.version>2.7.9</jackson-hibernate5.version>
+        <jackson.version>2.16.2</jackson.version>
+        <jackson-annotations.version>2.16.2</jackson-annotations.version>
+        <jackson-hibernate5.version>2.16.2</jackson-hibernate5.version>
         <jersey.version>2.26</jersey.version> <!-- left at 2.26 for compatibility with jackson 2.7.9-->
 
         <!-- Not updated but already at the latest available for Hibernate 5 and/or Java 8 -->
@@ -43,6 +42,10 @@
 
         <!-- Not updated but already at the latest version available -->
         <javers-hibernate.version>1.3.2</javers-hibernate.version>
+
+        <!-- These are the latest version compatible with Java 8 -->
+        <mockito.version>4.11.0</mockito.version>
+        <testcontainers.version>1.20.6</testcontainers.version>
 
     </properties>
 
@@ -121,14 +124,19 @@
             </plugin>
 
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.13.0</version>
-            </plugin>
-
-            <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version>
+                <version>3.2.5</version>
+                <configuration>
+                    <argLine>-Xmx512m</argLine>
+                    <systemPropertyVariables>
+                        <testcontainers.yml.disable_update_check>true</testcontainers.yml.disable_update_check>
+                    </systemPropertyVariables>
+                    <environmentVariables>
+                        <GSW_CONFIG>${project.basedir}/src/test/resources</GSW_CONFIG>
+                        <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
+                        <DOCKER_HOST>${env.DOCKER_HOST}</DOCKER_HOST>
+                    </environmentVariables>
+                </configuration>
             </plugin>
 
             <!-- Code Quality Plugins -->
@@ -238,22 +246,18 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+        <!--
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+        -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-suite-engine</artifactId>
-            <version>${junit.platform.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -402,6 +406,51 @@
             <groupId>com.github.ulisesbocchio</groupId>
             <artifactId>jasypt-spring-boot-starter</artifactId>
             <version>${jasypt-spring-boot-starter.version}</version>
+        </dependency>
+
+        <!-- Test Utilities-->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-inline</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Force compatible Byte Buddy version for Mockito mockStatic (Java 8 compatible) -->
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>1.12.19</version>
+            <scope>runtime</scope> <!-- This is needed for hibernate -->
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-agent</artifactId>
+            <version>1.12.19</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mariadb</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- Uncomment this dependency if you want to use RSASSA-PSS (PS256, PS384, PS512) algorithms:
