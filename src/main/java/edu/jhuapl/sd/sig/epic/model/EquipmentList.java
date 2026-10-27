@@ -10,6 +10,8 @@
 package edu.jhuapl.sd.sig.epic.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import edu.jhuapl.sd.sig.epic.model.util.EquipmentDateSerializer;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -38,9 +40,11 @@ public class EquipmentList
     private String propertyNumber;
 
     @Column(name = "calibration_date")
+    @JsonSerialize(using = EquipmentDateSerializer.class)
     private Date calibrationDate;
 
     @Column(name = "calibration_due_date")
+    @JsonSerialize(using = EquipmentDateSerializer.class)
     private Date calibrationDueDate;
 
     @ManyToOne
